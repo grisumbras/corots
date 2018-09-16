@@ -1,0 +1,18 @@
+import option ;
+import testing ;
+
+
+local build-dir = [ option.get build-dir : bin ] ;
+
+
+project corots
+  : build-dir $(build-dir)
+  : requirements
+    <cxxstd>latest
+  ;
+
+
+alias corots : : <include>include : : <include>include ;
+
+
+run [ glob test/*.cpp ] corots : : : : : test ;
