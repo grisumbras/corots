@@ -4,6 +4,8 @@
 
 #include <iostream>
 
+#include <boost/core/lightweight_test.hpp>
+
 
 template <class Value> class generator;
 
@@ -132,7 +134,7 @@ private:
 
 
 auto constexpr fibonacci = corots::coroutine<generator<int>>([](auto& promise) {
-  auto current = 0;
+  auto current = 1;
   auto previous = 0;
   for (;;) {
     corots::yield(promise, current);
@@ -141,9 +143,18 @@ auto constexpr fibonacci = corots::coroutine<generator<int>>([](auto& promise) {
 });
 
 
-int main() {
+void test_fibonacci() {
+  auto sample = {1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89};
+  auto fibs = std::vector<int>();
   for (auto n: fibonacci()) {
-    std::cout << n << ' ';
-    if (n > 1'000'000) { break; }
+    if (n > 100) { break; }
+    fibs.push_back(n);
   }
+  BOOST_TEST_ALL_EQ(sample.begin(), sample.end(), fibs.begin(), fibs.end());
+}
+
+
+int main() {
+  // test_fibonacci();
+  return boost::report_errors();
 }

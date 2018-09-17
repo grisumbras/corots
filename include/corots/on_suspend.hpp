@@ -13,6 +13,8 @@ struct await_handle_tag {};
 
 
 struct on_suspend {
+  void operator()() const noexcept {}
+
   template <class Handle, class Awaiter>
   void operator()(await_void_tag, Handle handle, Awaiter&& awaiter) {
       awaiter.await_suspend(handle);

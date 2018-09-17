@@ -79,7 +79,7 @@ private:
 
   Body body_;
   std::tuple<Promise&, Args...> args_;
-  resumable_auto(resumable_, run_this()());
+  resumable_auto_member(resumable_, run_this()());
 };
 
 

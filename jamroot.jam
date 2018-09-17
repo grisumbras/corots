@@ -12,7 +12,28 @@ project corots
   ;
 
 
-alias corots : : <include>include : : <include>include ;
+lib boost_system
+  :
+  : <name>boost_system
+  ;
+
+lib boost_context
+  :
+  : <name>boost_context
+  ;
+
+lib boost_coroutine
+  : boost_system
+    boost_context
+  : <name>boost_coroutine
+  ;
 
 
-run [ glob test/*.cpp ] corots : : : : : test ;
+alias corots : boost_coroutine : <include>include : : <include>include ;
+
+
+local tests ;
+for source in [ glob test/*.cpp ] {
+  tests += [ run $(source) corots ] ;
+}
+alias test : $(tests) ;
