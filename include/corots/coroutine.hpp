@@ -49,8 +49,7 @@ auto make_coroutine(Factory& factory, Args&& ... args) -> R {
     try {
       return get_return_object(frame->promise());
     } catch (...) {
-      // TODO: replace with a customizable deallocation function
-      delete frame;
+      deallocate_coroutine_frame(frame);
       throw;
     }
   }();

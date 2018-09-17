@@ -13,6 +13,7 @@
 
 namespace corots::detail {
 
+
 template <class Promise>
 using has_return_void = decltype(std::declval<Promise&>().return_void());
 
@@ -48,20 +49,22 @@ class coroutine_frame final
   , type_erased_coroutine_frame<Promise>
 {
 public:
+  using promise_type = Promise;
+
   coroutine_frame(Body body, Args ... args)
-    : coroutine_frame_base<Promise>(this)
+    : coroutine_frame_base<promise_type>(this)
     , body_(std::move(body))
     , args_
       (std::forward_as_tuple(this->promise(), static_cast<Args&&>(args)...))
   {}
 
-  auto promise() -> Promise& override { return this->promise_; }
+  auto promise() -> promise_type& override { return this->promise_; }
 
   auto done() -> bool override { return resumable_.ready(); }
 
   void resume() override { return resumable_.resume(on_suspend()); }
 
-  void destroy() override { delete this; }
+  void destroy() override { deallocate_coroutine_frame(this); }
 
 private:
   auto run_this() {
@@ -78,16 +81,53 @@ private:
   }
 
   Body body_;
-  std::tuple<Promise&, Args...> args_;
+  std::tuple<promise_type&, Args...> args_;
   resumable_auto_member(resumable_, run_this()());
 };
+
+
+template <class T>
+using has_overloaded_operator_new_short
+  = decltype(T::operator new(std::size_t()));
+
+
+template <class T>
+using has_overloaded_operator_delete_short
+  = decltype(T::operator delete(static_cast<T*>(nullptr)));
 
 
 template <class R, class Body, class... Args>
 auto allocate_coroutine_frame(Body body, Args&& ... args) {
   using promise_t = typename coroutine_traits<R, Args...>::promise_type;
-  using frame_t = detail::coroutine_frame<promise_t, Body, Args...>;
-  return new frame_t(std::move(body), static_cast<Args&&>(args)...);
+  using frame_t = coroutine_frame<promise_t, Body, Args...>;
+
+  auto constexpr full_size = sizeof(frame_t);
+  auto ptr = static_cast<void*>(nullptr);
+  if constexpr
+    (is_detected_v<has_overloaded_operator_new_short, promise_t>)
+  {
+    ptr = promise_t::operator new(full_size);
+  } else {
+    ptr = ::operator new(full_size);
+  }
+
+  new (ptr) frame_t(std::move(body), static_cast<Args&&>(args)...);
+  return reinterpret_cast<frame_t*>(ptr);
+}
+
+
+template <class Frame>
+void deallocate_coroutine_frame(Frame* ptr) {
+  using promise_t = typename Frame::promise_type;
+
+  ptr->~Frame();
+  if constexpr
+    (is_detected_v<has_overloaded_operator_delete_short, promise_t>)
+  {
+    promise_t::operator delete(ptr);
+  } else {
+    ::operator delete(ptr, sizeof(Frame));
+  }
 }
 
 

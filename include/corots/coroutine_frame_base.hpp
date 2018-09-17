@@ -35,8 +35,11 @@ struct coroutine_frame_base {
   auto promise() -> Promise& { return promise_; }
   auto promise() const -> Promise const& { return promise_; }
 
-  Promise promise_;
   type_erased_coroutine_frame<Promise>* self_;
+  Promise promise_;
+
+protected:
+  ~coroutine_frame_base () = default;
 };
 
 
